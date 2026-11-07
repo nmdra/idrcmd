@@ -25,7 +25,9 @@ func TestHelp(t *testing.T) {
 func TestRejectUnsupported(t *testing.T) {
 	for _, args := range [][]string{
 		nil, {"convert", "photo.png", "to", "webp"}, {"--dry-run", "git", "status"},
-		{"doctor"}, {"doctor", "turso"}, {"doctor", "turso", "--unknown"},
+		{"doctor"}, {"doctor", "needle"}, {"doctor", "needle", "--unknown"},
+		{"doctor", "needle", "--model", "unused", "extra"},
+		{"doctor", "turso"}, {"doctor", "turso", "--unknown"},
 		{"doctor", "turso", "--db", "/tmp/unused.db", "extra"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
@@ -57,6 +59,16 @@ func TestDoctorRealTurso(t *testing.T) {
 	out.Reset()
 	if code := Run(context.Background(), args, &out, &errs); code != 1 {
 		t.Fatalf("existing database: exit %d", code)
+	}
+}
+
+func TestNeedleDoctorFailsClosed(t *testing.T) {
+	var out, errs bytes.Buffer
+	if code := Run(context.Background(), []string{"doctor", "needle", "--model", filepath.Join(t.TempDir(), "missing.cact")}, &out, &errs); code != 1 {
+		t.Fatalf("missing native model: exit %d", code)
+	}
+	if out.Len() != 0 || !strings.Contains(errs.String(), "Needle probe failed") {
+		t.Fatal("failed native probe must not return success evidence")
 	}
 }
 
