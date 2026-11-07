@@ -25,3 +25,16 @@ func TestCancelledProbe(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestModelUnavailable(t *testing.T) {
+	if m, metrics, err := Open(context.Background(), "unused"); m != nil || metrics != (LoadMetrics{}) || !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("Open: %v %v %v", m, metrics, err)
+	}
+	var m *Model
+	if v, d, err := m.Embed(context.Background(), "hello"); v != nil || d != 0 || !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("Embed: %v %v %v", v, d, err)
+	}
+	if v, d, err := m.Complete(context.Background(), "hello", "[]"); v != "" || d != 0 || !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("Complete: %v %v %v", v, d, err)
+	}
+}
