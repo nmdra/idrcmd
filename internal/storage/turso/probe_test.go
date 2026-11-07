@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // This test uses the real pinned Turso driver and native vector functions.
@@ -42,6 +44,47 @@ func TestProbeRealDriver(t *testing.T) {
 	}
 	if _, err := Probe(context.Background(), path); !errors.Is(err, os.ErrExist) {
 		t.Fatalf("repeat error = %v, want existence error", err)
+	}
+}
+
+// A fresh test process loads the native driver and reads a database written and
+// closed by the parent. This is separate from Probe's same-process reopen check.
+func TestProbeProcessRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "restart.db")
+	if _, err := Probe(context.Background(), path); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestProbeRestartReader$")
+	cmd.Env = append(os.Environ(), "IDRCMD_TEST_RESTART_DB="+path)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("fresh process failed: %v\n%s", err, output)
+	}
+}
+
+func TestProbeRestartReader(t *testing.T) {
+	path := os.Getenv("IDRCMD_TEST_RESTART_DB")
+	if path == "" {
+		t.Skip("only runs in the restart-check child process")
+	}
+	db, err := sql.Open("turso", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var count int
+	if err := db.QueryRow(`SELECT count(*) FROM m0_probe_vectors`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 10 {
+		t.Fatalf("fresh process found %d rows, want 10", count)
+	}
+	if _, _, err := nearest(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := absentRollback(context.Background(), db); err != nil {
+		t.Fatal(err)
 	}
 }
 

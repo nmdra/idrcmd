@@ -17,7 +17,8 @@ The first diagnostic uses real embedded Turso Database, not SQLite or a cloud
 service. It inserts **ten synthetic 3D vectors**, tests `vector32()` and
 `vector_distance_cos()`, verifies commit and rollback, and closes/reopens the
 local database to check persistence. These fixtures are not Needle embeddings.
-Close/reopen in one process does not prove persistence across process restarts.
+A separate test starts a fresh process and verifies persisted row count, ranking,
+and the absence of the rolled-back marker.
 
 ## Build and run
 
@@ -53,7 +54,9 @@ go test -race ./...
 ```
 
 The database tests use **real Turso v0.8.3** and its packaged native runtime.
-They do not validate model quality or prove network-disabled operation.
+The Turso test binary also passed under `unshare -Urn`, with networking disabled,
+including its fresh-process persistence check. These tests do not validate model
+quality or the combined model/retrieval flow.
 The driver uses `purego`, not cgo, but still loads a native library.
 Its platform package extracts that library to a local cache and can panic if
 native loading fails. Linux ARM64 remains unverified.
@@ -71,5 +74,5 @@ approved executable and separate argv tokens.
 - Pin and test matching original Needle 3 header, library, and weights.
 - Load the real model, generate embeddings, and obtain a read-only proposal.
 - Store/query real model vectors in local Turso.
-- Verify persistence across process restarts and operation with networking disabled.
+- Verify the combined model/retrieval flow across process restarts with networking disabled.
 - Record timings and architecture evidence before starting M1.
