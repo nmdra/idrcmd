@@ -17,8 +17,8 @@ const (
 // VerifyDuration measures pinned-file verification on every Open call.
 // NativeLoadDuration is zero when weights were already loaded.
 type LoadMetrics struct {
-	VerifyDuration     time.Duration
-	NativeLoadDuration time.Duration
+	VerifyDuration     time.Duration `json:"verify_duration_ns"`
+	NativeLoadDuration time.Duration `json:"native_load_duration_ns"`
 }
 
 // Model is an immutable handle to process-lifetime pinned weights. It owns no

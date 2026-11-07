@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 
+	"idrcmd/internal/eval"
 	"idrcmd/internal/inference"
 	"idrcmd/internal/storage/turso"
 )
@@ -21,6 +22,7 @@ Usage:
   idrcmd --help
   idrcmd doctor turso --db /absolute/path/to/NEW-probe.db
   idrcmd doctor needle --model /path/to/pinned/needle3.cact
+  idrcmd doctor scenarios --model /path/to/pinned/needle3.cact
 
 The Turso probe creates a new local database with ten synthetic vectors,
 checks SQL cosine ranking, transactions, and close/reopen persistence.
@@ -35,6 +37,9 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 		fmt.Fprint(out, usage)
 		return 0
+	}
+	if len(args) >= 2 && args[0] == "doctor" && args[1] == "scenarios" {
+		return scenarioDoctor(ctx, args[2:], out, errOut)
 	}
 	if len(args) >= 2 && args[0] == "doctor" && args[1] == "needle" {
 		return needleDoctor(ctx, args[2:], out, errOut)
@@ -65,6 +70,51 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer) int {
 	}
 	if err != nil {
 		fmt.Fprintf(errOut, "Turso probe failed: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func scenarioDoctor(ctx context.Context, args []string, out, errOut io.Writer) int {
+	flags := flag.NewFlagSet("doctor scenarios", flag.ContinueOnError)
+	flags.SetOutput(errOut)
+	path := flags.String("model", "", "path to pinned Needle 3 weights (required)")
+	if err := flags.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
+		return 2
+	}
+	if *path == "" || flags.NArg() != 0 {
+		fmt.Fprintln(errOut, "doctor scenarios requires --model and accepts no positional arguments")
+		return 2
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	model, load, err := inference.Open(ctx, *path)
+	if err != nil {
+		fmt.Fprintf(errOut, "Scenario model load failed: %v\n", err)
+		return 1
+	}
+	report, runErr := eval.Run(ctx, model, inference.ModelID)
+	result := struct {
+		eval.Report
+		Load             inference.LoadMetrics `json:"load"`
+		OperationalError string                `json:"operational_error,omitempty"`
+	}{Report: report, Load: load}
+	if runErr != nil {
+		result.OperationalError = runErr.Error()
+	}
+	if err := json.NewEncoder(out).Encode(result); err != nil {
+		fmt.Fprintf(errOut, "write scenario result: %v\n", err)
+		return 1
+	}
+	if runErr != nil {
+		fmt.Fprintf(errOut, "Scenario evaluation incomplete: %v\n", runErr)
+		return 1
+	}
+	if report.Failed > 0 {
+		fmt.Fprintf(errOut, "%d of %d scenarios did not meet their fixed expectations\n", report.Failed, len(report.Observations))
 		return 1
 	}
 	return 0

@@ -25,6 +25,8 @@ func TestHelp(t *testing.T) {
 func TestRejectUnsupported(t *testing.T) {
 	for _, args := range [][]string{
 		nil, {"convert", "photo.png", "to", "webp"}, {"--dry-run", "git", "status"},
+		{"doctor", "scenarios"}, {"doctor", "scenarios", "--unknown"},
+		{"doctor", "scenarios", "--model", "unused", "extra"},
 		{"doctor"}, {"doctor", "needle"}, {"doctor", "needle", "--unknown"},
 		{"doctor", "needle", "--model", "unused", "extra"},
 		{"doctor", "turso"}, {"doctor", "turso", "--unknown"},
@@ -69,6 +71,16 @@ func TestNeedleDoctorFailsClosed(t *testing.T) {
 	}
 	if out.Len() != 0 || !strings.Contains(errs.String(), "Needle probe failed") {
 		t.Fatal("failed native probe must not return success evidence")
+	}
+}
+
+func TestScenarioDoctorFailsClosed(t *testing.T) {
+	var out, errs bytes.Buffer
+	if code := Run(context.Background(), []string{"doctor", "scenarios", "--model", filepath.Join(t.TempDir(), "missing.cact")}, &out, &errs); code != 1 {
+		t.Fatalf("missing native model: exit %d", code)
+	}
+	if out.Len() != 0 || !strings.Contains(errs.String(), "Scenario model load failed") {
+		t.Fatal("failed scenario probe must not return success evidence")
 	}
 }
 
