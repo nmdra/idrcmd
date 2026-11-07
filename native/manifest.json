@@ -1,0 +1,65 @@
+{
+  "format_version": 1,
+  "upstream": "https://huggingface.co/Cactus-Compute/needle3",
+  "revision": "821ce52bd5f596fe880b8400bf53cc671922ad04",
+  "platform": "linux-x86_64",
+  "api": "original Needle3 process-global C API: needle_load, needle_init, needle_embed, needle_complete, needle_reset",
+  "artifacts": [
+    {
+      "path": ".native/include/needle.h",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/821ce52bd5f596fe880b8400bf53cc671922ad04/linux-x86_64/needle.h",
+      "size": 818,
+      "sha256": "ec74770d59cc99f86e909517c2e63ecc966aa99e3f8dc8e110b0b247ed36f58c"
+    },
+    {
+      "path": ".native/lib/libneedle.a",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/821ce52bd5f596fe880b8400bf53cc671922ad04/linux-x86_64/libneedle.a",
+      "size": 1640184,
+      "sha256": "bbb8e8869e33777096fd70d8ecc3cba59a85a892cbeb3954909083ca1cbdbadf"
+    },
+    {
+      "path": ".native/models/needle3.cact",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/821ce52bd5f596fe880b8400bf53cc671922ad04/needle3.cact",
+      "size": 35335380,
+      "sha256": "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38"
+    }
+  ],
+  "prerequisites": [
+    "Go with cgo enabled",
+    "C compiler",
+    "libc++ (verified with 23.1.4)",
+    "libstdc++",
+    "libm",
+    "pthread",
+    "curl and sha256sum for setup only"
+  ],
+  "verification_runtime": {
+    "note": "Manual local extraction only, not downloaded or installed by setup-native.sh. These ignored artifacts supplied missing host libc++ for verification. Package hashes record downloaded bytes, not independent publisher authentication. No system package installation.",
+    "extraction_directory": ".native/runtime",
+    "artifacts": [
+      {
+        "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/libc++-23.1.4-1-x86_64.pkg.tar.zst",
+        "sha256": "b822baa8b5273475f789b3080b59a4b939c18b09e98a36ebe418faf3228d9ac6"
+      },
+      {
+        "url": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/libc++abi-23.1.4-1-x86_64.pkg.tar.zst",
+        "sha256": "0048ecc3c67558ed88fb7f65d83effe156df04e4acc0730a20cdc6ceb1dc7cfc"
+      }
+    ],
+    "build_environment": {
+      "CGO_LDFLAGS": "-L$PWD/.native/runtime/usr/lib -Wl,-rpath,$PWD/.native/runtime/usr/lib",
+      "LD_LIBRARY_PATH": "$PWD/.native/runtime/usr/lib"
+    }
+  },
+  "safety": [
+    "No runtime downloads or network calls",
+    "No command execution in Probe",
+    "Serialized native lifecycle; pinned ABI cannot interrupt active native calls",
+    "C-owned model bytes retained for process lifetime because ABI has no unload function"
+  ],
+  "verified_output": {
+    "embedding_dimension": 3072,
+    "proposal": "one git_status call with no arguments",
+    "scope": "native inference only, not full Turso routing or offline namespace proof"
+  }
+}
