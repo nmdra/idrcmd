@@ -8,8 +8,9 @@ An offline-first Linux CLI for intent-driven use of trusted, registered commands
 
 ## Implementation status
 
-Implementation has started at **M0: native feasibility**. Natural-language
-routing, command registration, and command execution are **not implemented**.
+Implementation is at **M0: native feasibility**. A real retrieval-first scenario
+harness is available. Production natural-language routing, command registration,
+and command execution are **not implemented**.
 The product examples in `.agents/idrcmd-project-plan-turso.md` describe targets,
 not available features.
 
@@ -122,7 +123,32 @@ The combined test queries one stored real vector with the same vector. It proves
 encoding and persistence, **not semantic recall or retrieval-first tool routing**.
 The ten-vector database diagnostic uses synthetic fixtures. Native tests skip
 model inference if `IDRCMD_NEEDLE_MODEL` is unset; that is not a successful native
-check. Linux ARM64 remains unverified.
+check. ARM64 verification is outside the current scope, as requested.
+
+## Real request scenarios
+
+The ten-tool diagnostic now embeds distinct descriptions and user requests,
+retrieves the top five with Turso, and passes only that shortlist to Needle.
+It runs 22 fixed supported, missing-input, unrelated, ambiguous, and unsafe cases.
+No proposed command is executed.
+
+```sh
+# Requires the native dependencies and pinned assets described above.
+scripts/scenario-test.sh > /tmp/idrcmd-scenarios.json
+# Or, without the script's network isolation:
+bin/idrcmd doctor scenarios --model "$PWD/.native/models/needle3.cact"
+```
+
+The reference offline run retrieved the expected tool for **15/15 supported
+requests**, but met only **14/22 full smoke expectations**. There were wrong tool
+selections, a guessed filename, and a case-changed directory. The latter path
+errors were blocked by Go. These are observed failures, not passing demos.
+The scenario command returns exit 1 if any fixed expectation fails. Completed
+reports and partial operational failures are marked separately in JSON.
+
+See [the full results and measurements](docs/m0-scenarios.md) and the
+[raw reference report](tests/results/m0-linux-amd64.json). This small smoke set
+does not establish MVP accuracy or authorize execution.
 
 ## Safety boundary
 
@@ -134,11 +160,16 @@ approved executable and separate argv tokens.
 
 ## Next M0 gates
 
-- Replace the same-vector feasibility check with a ten-command, real-embedding
-  catalog and retrieval-first shortlist proposal smoke test.
-- Record separate model-load, embedding, SQL-query, tool-call, and memory measurements.
+- Retain the base-model routing and missing-input failures as the baseline for
+  planned use-case fine-tuning. No model fixes or routing overrides are included
+  in this task. Retest before enabling execution; retrieval quality and selection
+  quality are separate.
+- Expand to a held-out evaluation corpus before making MVP accuracy claims.
 - Review native packaging and redistribution requirements before distributing binaries.
-- Sign off the remaining M0 checks before starting the M1 registry.
+
+The ten-command retrieval-first feasibility run and separate performance/memory
+measurements are complete on Linux amd64. ARM64 verification is not required for
+this work.
 
 The project plan under `.agents/` is updated locally but is excluded by the
 repository's existing `.gitignore`. This README records the tracked status.
