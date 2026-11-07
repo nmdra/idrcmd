@@ -1,4 +1,4 @@
-// Package cli exposes M0 diagnostics only. Natural-language execution is not implemented.
+// Package cli exposes diagnostics and the reviewed read-only user workflow.
 package cli
 
 import (
@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"idrcmd/internal/eval"
@@ -16,10 +17,13 @@ import (
 
 const usage = `idrcmd: Remember the intent, not the command.
 
-Current stage: M0 feasibility. Intent routing and command execution are not available.
+Current stage: reviewed fixed-argv read-only tools. Placeholders and write actions are not available.
 
 Usage:
   idrcmd --help
+  idrcmd [--db PATH] [--model PATH] tools add FILE.json
+  idrcmd [--db PATH] tools list | tools show NAME | tools disable NAME
+  idrcmd [--db PATH] [--model PATH] [--dry-run] [--explain] <natural-language request>
   idrcmd doctor turso --db /absolute/path/to/NEW-probe.db
   idrcmd doctor needle --model /path/to/pinned/needle3.cact
   idrcmd doctor scenarios --model /path/to/pinned/needle3.cact
@@ -32,8 +36,14 @@ The Needle probe requires a native build. It embeds a fixed request and validate
 one read-only proposal. It does not execute that proposal.
 `
 
-// Run returns a process exit code. Diagnostics never execute user commands.
+// Run returns a process exit code and reads explicit trust/execution approval from stdin.
 func Run(ctx context.Context, args []string, out, errOut io.Writer) int {
+	return RunWithInput(ctx, args, os.Stdin, out, errOut)
+}
+
+// RunWithInput is the testable CLI boundary. There is no automatic approval flag.
+func RunWithInput(ctx context.Context, args []string, in io.Reader, out, errOut io.Writer) int {
+	out, errOut = escapedStream{out}, escapedStream{errOut}
 	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 		fmt.Fprint(out, usage)
 		return 0
@@ -45,8 +55,11 @@ func Run(ctx context.Context, args []string, out, errOut io.Writer) int {
 		return needleDoctor(ctx, args[2:], out, errOut)
 	}
 	if len(args) < 2 || args[0] != "doctor" || args[1] != "turso" {
-		fmt.Fprintln(errOut, "Intent execution is not implemented. Use --help for M0 diagnostics.")
-		return 2
+		if len(args) > 0 && args[0] == "doctor" {
+			fmt.Fprintln(errOut, "Unknown diagnostic. Use --help.")
+			return 2
+		}
+		return workflow(ctx, args, in, out, errOut)
 	}
 	flags := flag.NewFlagSet("doctor turso", flag.ContinueOnError)
 	flags.SetOutput(errOut)

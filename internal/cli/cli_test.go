@@ -24,7 +24,7 @@ func TestHelp(t *testing.T) {
 
 func TestRejectUnsupported(t *testing.T) {
 	for _, args := range [][]string{
-		nil, {"convert", "photo.png", "to", "webp"}, {"--dry-run", "git", "status"},
+		nil, {"--unknown"}, {"tools"}, {"tools", "add"}, {"tools", "reindex"},
 		{"doctor", "scenarios"}, {"doctor", "scenarios", "--unknown"},
 		{"doctor", "scenarios", "--model", "unused", "extra"},
 		{"doctor"}, {"doctor", "needle"}, {"doctor", "needle", "--unknown"},

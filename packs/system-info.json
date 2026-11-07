@@ -1,0 +1,8 @@
+{
+  "name": "system_info",
+  "description": "Show the local operating system and kernel information",
+  "command": [
+    "uname",
+    "-a"
+  ]
+}

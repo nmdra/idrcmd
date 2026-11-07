@@ -1,0 +1,9 @@
+{
+  "name": "git_status",
+  "description": "Show uncommitted changes and working tree status in the current Git repository, read only",
+  "command": [
+    "git",
+    "status",
+    "--short"
+  ]
+}

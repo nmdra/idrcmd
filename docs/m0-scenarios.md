@@ -152,5 +152,8 @@ as a baseline for planned use-case fine-tuning. No model fix, routing override,
 threshold change, or fine-tuning is part of this task. Retest the same frozen
 scenarios after future model changes, and use a separate held-out corpus for MVP
 quality claims. Keep Go's safety boundary; do not silently execute the nearest
-tool or use high confidence to approve a proposal. Execution remains disabled.
+tool or use high confidence to approve a proposal. Execution remains disabled in
+this scenario harness. A separate [reviewed read-only user workflow](read-only-workflow.md)
+now supports explicit trust, preview, and confirmation; that does not turn these
+base-model failures into passes or authorize general execution.
 Native packaging and redistribution review also remain open.

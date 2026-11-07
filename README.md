@@ -8,11 +8,43 @@ An offline-first Linux CLI for intent-driven use of trusted, registered commands
 
 ## Implementation status
 
-Implementation is at **M0: native feasibility**. A real retrieval-first scenario
-harness is available. Production natural-language routing, command registration,
-and command execution are **not implemented**.
-The product examples in `.agents/idrcmd-project-plan-turso.md` describe targets,
-not available features.
+A **limited read-only user workflow** is now available: register a reviewed
+fixed-argv command, explicitly trust it, request it in natural language, review
+the exact command, and confirm real execution. Definitions and real embeddings
+persist in local Turso. There are no keyword routes or generated shell commands.
+
+The full M1/M2 registry, placeholders, missing-value follow-ups, file conversions,
+and write operations are **not implemented**. The product examples in
+`.agents/idrcmd-project-plan-turso.md` remain targets unless stated otherwise.
+
+## Try the user workflow
+
+From the repository root, using this machine's existing native assets:
+
+```sh
+export CGO_LDFLAGS="-L$PWD/.native/runtime/usr/lib -Wl,-rpath,$PWD/.native/runtime/usr/lib"
+export LD_LIBRARY_PATH="$PWD/.native/runtime/usr/lib"
+export IDRCMD_MODEL="$PWD/.native/models/needle3.cact"
+CGO_ENABLED=1 go build -tags needle -o bin/idrcmd ./cmd/idrcmd
+
+bin/idrcmd tools add packs/git-status.json
+# Review and enter y to trust the definition.
+bin/idrcmd --dry-run 'show my uncommitted changes'
+bin/idrcmd 'show my uncommitted changes'
+# Review the exact argv and enter y to run, or n to cancel.
+```
+
+Only `["git","status","--short"]`, `["pwd"]`, `["pwd","-P"]`, and
+`["uname","-a"]` templates are accepted. Names and descriptions are user-defined.
+Git repositories with unsupported execution/transport configuration are refused.
+Every invocation requires confirmation; `--dry-run` never executes anything.
+
+See [registration, paths, safeguards, and examples](docs/read-only-workflow.md).
+`scripts/user-smoke-test.sh` verifies the real flow across separate CLI processes
+against temporary data, with socket I/O and io_uring denied. Model selection
+errors remain possible; inspect the preview rather than approving by habit.
+
+## Feasibility diagnostics
 
 The first diagnostic uses real embedded Turso Database, not SQLite or a cloud
 service. It inserts **ten synthetic 3D vectors**, tests `vector32()` and
@@ -21,7 +53,7 @@ local database to check persistence. These fixtures are not Needle embeddings.
 A separate test starts a fresh process and verifies persisted row count, ranking,
 and the absence of the rolled-back marker.
 
-The native build also loads the **original Needle 3 base model** through cgo,
+The `doctor needle` diagnostic loads the **original Needle 3 base model** through cgo,
 generates a real **3,072-dimensional embedding**, and validates one argument-free
 `git_status` proposal. It does not execute Git. Header, library, and weights are
 pinned to the same immutable Hugging Face revision with SHA-256 checksums in
@@ -152,18 +184,26 @@ does not establish MVP accuracy or authorize execution.
 
 ## Safety boundary
 
-No user command is executed at this stage. Unsupported requests fail with an
-explicit message. Future execution must retain the boundary:
+Execution is restricted to the reviewed fixed-argv read-only subset and explicit
+approval. Failed, empty, suppressed, multiple, argument-bearing, unregistered,
+disabled, or untrusted proposals cannot run. The service refreshes registry trust
+and executable identity after preview. It does not automatically correct known
+Cactus selection errors or use confidence as permission.
 
 trusted registry → semantic retrieval → Needle proposal → Go validation →
-approved executable and separate argv tokens.
+preview and user approval → approved executable and separate argv tokens.
 
-## Next M0 gates
+The executor uses a clean environment, Git configuration audit, time/output
+bounds, cancellation, and safe terminal rendering. It is not a sandbox against
+root or hostile same-account concurrent filesystem changes. See the workflow
+guide for Git-specific restrictions and trust assumptions.
+
+## Next milestones
 
 - Retain the base-model routing and missing-input failures as the baseline for
   planned use-case fine-tuning. No model fixes or routing overrides are included
-  in this task. Retest before enabling execution; retrieval quality and selection
-  quality are separate.
+  in this task. Retest before broadening execution beyond the reviewed read-only
+  subset; retrieval quality and selection quality are separate.
 - Expand to a held-out evaluation corpus before making MVP accuracy claims.
 - Review native packaging and redistribution requirements before distributing binaries.
 

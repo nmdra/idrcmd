@@ -1,0 +1,7 @@
+{
+  "name": "current_directory",
+  "description": "Show the absolute physical path of the current working directory",
+  "command": [
+    "pwd"
+  ]
+}
